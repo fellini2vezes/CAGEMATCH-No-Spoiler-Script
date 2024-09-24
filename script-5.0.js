@@ -8,13 +8,13 @@
 // @grant        none
 // ==/UserScript==
 
-// Código A - Executa apenas em URLs específicas
+// Código A
 
 // Verifica se a URL contém os parâmetros exatos desejados para Código A
 function shouldRunCodeA() {
     const url = window.location.href;
-    // Verifica se a URL contém exatamente "page=2", "page=4", "id=111" ou "id=112&view=search"
-    return /([?&]page=(2|4)(?:&|$)|[?]id=111(?:&|$)|[?]id=112&view=search(?:&|$))/.test(url);
+    // Verifica se a URL contém exatamente "page=2", "page=4", "id=111&view=search" ou "id=112&view=search"
+    return /([?&]page=(2|4)(?:&|$)|[?]id=111&view=search(?:&|$)|[?]id=112&view=search(?:&|$))/.test(url);
 }
 
 // Função para embaralhar array
@@ -38,11 +38,35 @@ function replaceText(node) {
         node.textContent = node.textContent.replace(/\bby Count Out\b/g, '');
         node.textContent = node.textContent.replace(/\bby DQ\b/g, '');
         node.textContent = node.textContent.replace(/\bby TKO\b/g, '');
-        node.textContent = node.textContent.replace(/\No Contest/g, '');
+        node.textContent = node.textContent.replace(/\bNo Contest\b/g, '');
         node.textContent = node.textContent.replace(/\s*\(\d+:\d+\)\s*/g, '');
+        node.textContent = node.textContent.replace(/\s*\([^:)]*:[^)]*\)\s*/g, ''); // Remove qualquer ":" entre parênteses
     } else if (node.nodeType === Node.ELEMENT_NODE) {
         node.childNodes.forEach(child => replaceText(child));
     }
+}
+
+// Função para processar e alterar o conteúdo de um MatchCard
+function processMatchCard(card) {
+    let fullText = card.innerHTML;
+    let groups = fullText.split(/(\s+defeat\s+|\s+defeats\s+|\s+and\s+|\s+vs\.\s+)/).filter(Boolean);
+
+    let linkGroups = [];
+    for (let i = 0; i < groups.length; i++) {
+        if (i % 2 === 0) {
+            linkGroups.push(groups[i].trim());
+        }
+    }
+
+    // Embaralha os grupos
+    shuffleArray(linkGroups);
+
+    // Reconstrói o conteúdo embaralhado
+    let newContent = linkGroups.map(group => `${group} <span style="display: none;"></span>`).join(' vs. <span style="display: none;"></span> ');
+    card.innerHTML = newContent;
+
+    // Aplica substituições ao novo conteúdo
+    replaceText(card);
 }
 
 // Verifica se deve executar o Código A
@@ -50,25 +74,13 @@ if (shouldRunCodeA()) {
     let matchCards = document.querySelectorAll('.MatchCard');
 
     matchCards.forEach(card => {
+        // Guarda o conteúdo original
         const originalContent = card.innerHTML;
 
-        let fullText = card.innerHTML;
-        let groups = fullText.split(/(\s+defeat\s+|\s+defeats\s+|\s+and\s+|\s+vs\.\s+)/).filter(Boolean);
+        // Processa o conteúdo pela primeira vez
+        processMatchCard(card);
 
-        let linkGroups = [];
-        for (let i = 0; i < groups.length; i++) {
-            if (i % 2 === 0) {
-                linkGroups.push(groups[i].trim());
-            }
-        }
-
-        shuffleArray(linkGroups);
-
-        let newContent = linkGroups.map(group => `${group} <span style="display: none;"></span>`).join(' vs. <span style="display: none;"></span> ');
-        card.innerHTML = newContent;
-
-        replaceText(card);
-
+        // Cria botão para mostrar/ocultar conteúdo
         const button = document.createElement('button');
         button.textContent = 'show';
         button.style.textAlign = 'center';
@@ -76,14 +88,17 @@ if (shouldRunCodeA()) {
 
         button.addEventListener('click', () => {
             if (button.textContent === 'show') {
+                // Mostra o conteúdo original
                 card.innerHTML = originalContent;
                 button.textContent = 'hide';
             } else {
-                card.innerHTML = newContent;
+                // Refaz todo o processo de embaralhamento e substituições
+                processMatchCard(card);
                 button.textContent = 'show';
             }
         });
 
+        // Adiciona o botão na célula da linha
         const row = card.closest('.TRow1, .TRow2');
         const showCell = document.createElement('td');
         showCell.className = 'TCol TColSeparator';
@@ -94,6 +109,7 @@ if (shouldRunCodeA()) {
         row.appendChild(showCell);
     });
 
+    // Adiciona um cabeçalho "Results"
     const headerRow = document.querySelector('.THeaderRow');
     const newHeaderCell = document.createElement('td');
     newHeaderCell.className = 'THeaderCol TColSeparator';
@@ -102,6 +118,7 @@ if (shouldRunCodeA()) {
     newHeaderCell.style.verticalAlign = 'middle';
     headerRow.appendChild(newHeaderCell);
 }
+
 
 // Código B
 
