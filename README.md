@@ -1,4 +1,4 @@
-This script hides the information about the winners of each match in the tabs with the most information, specifically in 'matches', 'advanced search', 'tournaments' or when searching through wrestlers, tag teams, or stables.
+This script hides  information about the winners, specifically in 'matches', 'advanced search', 'tournaments' or when searching through wrestlers, tag teams, or stables.
 
 First thing implemented was shuffling the wrestlers or tag teams in the match card multiple times before placing them in the card, which prevent the discovery of the winners based on their positions.
 
